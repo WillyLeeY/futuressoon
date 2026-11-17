@@ -39,6 +39,7 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
   const labelRef = useRef(contractLabel);
   labelRef.current = contractLabel;
   const applyRangeRef = useRef(() => {});
+  const interactedRef = useRef(false);
 
   // Create the chart once.
   useEffect(() => {
@@ -149,16 +150,29 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
     chart.subscribeCrosshairMove((param) => render(param.time ? timeToStr(param.time) : null));
     apiRef.current = { chart, candle, vol, inst, render };
 
-    // Re-apply the visible range whenever the chart gets (re)sized, and create legends once panes are painted.
+    // Re-apply the visible range when the chart gets its real size (it starts hidden/zero-width),
+    // but ONLY until the user starts zooming/dragging. Otherwise zooming in changes the price-axis
+    // label width, which fires a size change and would reset the user's zoom.
+    const box = boxRef.current;
+    const markInteracted = () => {
+      interactedRef.current = true;
+    };
+    box.addEventListener('wheel', markInteracted, { passive: true });
+    box.addEventListener('pointerdown', markInteracted, { passive: true });
+    box.addEventListener('touchstart', markInteracted, { passive: true });
+
     const onSize = () => {
       render(null);
-      applyRangeRef.current();
+      if (!interactedRef.current) applyRangeRef.current();
     };
     chart.timeScale().subscribeSizeChange(onSize);
     const raf = requestAnimationFrame(() => render(null));
 
     return () => {
       cancelAnimationFrame(raf);
+      box.removeEventListener('wheel', markInteracted);
+      box.removeEventListener('pointerdown', markInteracted);
+      box.removeEventListener('touchstart', markInteracted);
       chart.timeScale().unsubscribeSizeChange(onSize);
       apiRef.current = null;
       chart.remove();
@@ -224,6 +238,7 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
         api.chart.timeScale().fitContent();
       }
     };
+    interactedRef.current = false; // a new range/data selection starts fresh
     applyRangeRef.current();
   }, [months, candles]);
 
