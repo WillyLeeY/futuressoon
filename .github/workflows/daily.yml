@@ -4,8 +4,8 @@ name: Daily update
 #   09:00 UTC = 17:00 Taiwan,  11:00 UTC = 19:00 Taiwan  (Mon-Fri)
 on:
   schedule:
-    - cron: '0 9 * * 1-5'
-    - cron: '0 11 * * 1-5'
+    - cron: '17 9 * * 1-5'
+    - cron: '17 11 * * 1-5'
   workflow_dispatch: {}
 
 permissions:
