@@ -26,7 +26,7 @@
 
 | 環節 | 說明 |
 |---|---|
-| 資料來源 | [臺灣期貨交易所](https://www.taifex.com.tw/)官方資料：每日更新用 OpenAPI，歷史回補用官網 CSV 下載 |
+| 資料來源 | [臺灣期貨交易所](https://www.taifex.com.tw/)官方資料：每日更新與歷史回補都用官網 CSV 下載（每天往回補抓 7 天），OpenAPI 僅作備援 |
 | 每日抓取 | GitHub Actions，台灣時間週一到週五 17:00 和 19:00 各一次；同一天重複抓只會覆蓋，不會重複存 |
 | 資料庫 | Supabase（PostgreSQL）。網站只用唯讀的公開金鑰，無法寫入 |
 | 網站 | Next.js + [lightweight-charts](https://github.com/tradingview/lightweight-charts)，部署在 Vercel |
@@ -40,7 +40,7 @@ futuressoon/
 │   ├── components/          圖表元件
 │   └── lib/data.js          從 Supabase 讀資料
 ├── scripts/                 抓資料的程式（Node.js，無額外套件）
-│   ├── daily.js             每日更新（OpenAPI，只有最新交易日）
+│   ├── daily.js             每日更新（官網 CSV 最近 7 天，OpenAPI 備援）
 │   ├── backfill.js          歷史回補（官網 CSV）
 │   └── lib/                 期交所抓取與解析、寫入 Supabase
 ├── supabase/schema.sql      資料表與權限設定

@@ -10,7 +10,8 @@
 
 ## 技術決定
 - 資料來源（只用官方）：臺灣期貨交易所
-  - 每日更新：OpenAPI `https://openapi.taifex.com.tw/v1/`（只提供最新一個交易日，無需 API key）
+  - 每日更新：優先用官網 CSV 抓最近 7 天（收盤後約下午就有，比 OpenAPI 早；結束日不能是尚無資料的日子，所以先試今天、失敗再試昨天）；CSV 全失敗才退回 OpenAPI。2026-11-17 實測 17:24 時官網 CSV 已有當日資料，但 OpenAPI 仍停在前一天。
+  - OpenAPI `https://openapi.taifex.com.tw/v1/`（只提供最新一個交易日，無需 API key，更新較慢，僅作備援）
     - 行情：`/DailyMarketReportFut`
     - 三大法人：`/MarketDataOfMajorInstitutionalTradersDetailsOfFuturesContractsBytheDate`
   - 歷史回補：官網 CSV（Big5 編碼，POST）
