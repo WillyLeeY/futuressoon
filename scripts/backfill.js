@@ -15,7 +15,9 @@ const utcDay = (s) => {
   return new Date(Date.UTC(y, m - 1, d));
 };
 const today = new Date();
-const defaultTo = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+// End date defaults to YESTERDAY: TAIFEX rejects a range that ends today (no data yet).
+// Today's data is handled by the daily job (OpenAPI).
+const defaultTo = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 1));
 const defaultFrom = new Date(defaultTo);
 defaultFrom.setUTCFullYear(defaultFrom.getUTCFullYear() - 1);
 
@@ -25,11 +27,17 @@ const fmt = (d) => d.toISOString().slice(0, 10);
 
 console.log(`Backfill ${fmt(from)} ~ ${fmt(to)}${dryRun ? '  (dry run: nothing is written)' : ''}`);
 
-// 1) Institutional investors: one request for the whole range.
-const institutional = await fetchInstitutionalCsv(from, to);
-console.log(`Institutional rows fetched: ${institutional.length}`);
-if (dryRun) console.log('  sample:', JSON.stringify(institutional[0]));
-else console.log(`  upserted: ${await upsert('institutional_daily', institutional, INSTITUTIONAL_KEY)}`);
+// 1) Institutional investors: month by month (the site rejects ranges over one year).
+let institutionalTotal = 0;
+for (const [start, end] of monthChunks(from, to)) {
+  const rows = await fetchInstitutionalCsv(start, end);
+  institutionalTotal += rows.length;
+  if (!dryRun && rows.length) await upsert('institutional_daily', rows, INSTITUTIONAL_KEY);
+  console.log(`  institutional ${fmt(start)} ~ ${fmt(end)}: ${rows.length} rows`);
+  if (dryRun && rows.length && institutionalTotal === rows.length) console.log('  sample:', JSON.stringify(rows[0]));
+  await sleep(800);
+}
+console.log(`Institutional rows ${dryRun ? 'fetched' : 'upserted'}: ${institutionalTotal}`);
 
 // 2) Market data: month by month, per contract (the site limits the range per request).
 let marketTotal = 0;
