@@ -1,0 +1,38 @@
+name: Backfill history
+
+# Run manually from the Actions tab. Leave inputs empty to backfill the past year.
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: 'Start date YYYY-MM-DD (empty = one year ago)'
+        required: false
+        default: ''
+      to:
+        description: 'End date YYYY-MM-DD (empty = today)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Backfill from TAIFEX CSV downloads
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+        run: |
+          ARGS=""
+          if [ -n "$FROM" ]; then ARGS="$ARGS --from $FROM"; fi
+          if [ -n "$TO" ]; then ARGS="$ARGS --to $TO"; fi
+          node scripts/backfill.js $ARGS

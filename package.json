@@ -1,0 +1,14 @@
+{
+  "name": "futuressoon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TAIFEX index futures daily K-line and institutional investors viewer",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "backfill": "node scripts/backfill.js",
+    "daily": "node scripts/daily.js"
+  }
+}
