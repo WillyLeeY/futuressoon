@@ -5,9 +5,10 @@ const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const PAGE = 1000; // Supabase returns at most 1000 rows per request
 
 export const CONTRACTS = [
-  { code: 'TX', label: '大台', institutionalName: '臺股期貨' },
-  { code: 'MTX', label: '小台', institutionalName: '小型臺指期貨' },
-  { code: 'TMF', label: '微台', institutionalName: '微型臺指期貨' },
+  // pointValue = NTD per index point per contract
+  { code: 'TX', label: '大台', institutionalName: '臺股期貨', pointValue: 200 },
+  { code: 'MTX', label: '小台', institutionalName: '小型臺指期貨', pointValue: 50 },
+  { code: 'TMF', label: '微台', institutionalName: '微型臺指期貨', pointValue: 10 },
 ];
 
 export const SESSIONS = [

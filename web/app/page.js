@@ -103,7 +103,7 @@ export default function Page() {
             </div>
           </div>
           <div className="stat">
-            <div className="k">成交量</div>
+            <div className="k">成交量（口）</div>
             <div className="v">{fmt(last.volume)}</div>
           </div>
           {INVESTORS.map((inv) => {
@@ -111,7 +111,9 @@ export default function Page() {
             const row = rows[rows.length - 1];
             return (
               <div className="stat" key={inv.name}>
-                <div className="k">{inv.label}買賣超（{row?.trade_date?.slice(5) ?? '-'}）</div>
+                <div className="k">
+                  {inv.label}買賣超（口）｜{row?.trade_date?.slice(5) ?? '-'}
+                </div>
                 <div className={`v ${cls(row?.net_volume)}`}>
                   {row ? `${sign(row.net_volume)}${fmt(row.net_volume)}` : '-'}
                 </div>
@@ -124,7 +126,9 @@ export default function Page() {
       <div className="card">
         <h2>
           {meta.label}・{SESSIONS.find((s) => s.code === session).label}
-          <span>紅漲綠跌｜柱狀 = 當日買賣超（口）｜黃線 = 未平倉淨口數（左軸）</span>
+          <span>
+            1 口 = {meta.pointValue} 元／點｜紅漲綠跌｜柱狀 = 當日買賣超（口）｜黃線 = 未平倉淨口數（口，左軸）
+          </span>
         </h2>
         {loading && <div className="msg">載入中…</div>}
         {error && <div className="msg err">{error}</div>}
