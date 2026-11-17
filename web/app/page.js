@@ -144,6 +144,9 @@ export default function Page() {
         <br />
         K 線為「近月」合約（當日掛牌中最接近到期的月份）。本網站僅整理公開資料供參考，不構成任何投資建議，
         也不保證資料即時或正確。
+        <br />
+        圖表使用 <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">TradingView</a>{' '}
+        Lightweight Charts™（Copyright © TradingView, Inc.）。
       </div>
     </main>
   );

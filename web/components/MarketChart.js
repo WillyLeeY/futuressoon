@@ -47,6 +47,8 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
       layout: {
         background: { type: ColorType.Solid, color: '#121722' },
         textColor: '#8b95a7',
+        // Logo hidden; the required TradingView attribution link is in the page footer (app/page.js).
+        attributionLogo: false,
         panes: { separatorColor: '#232b3a', separatorHoverColor: '#3b82f6' },
       },
       grid: { vertLines: { color: '#1a2130' }, horzLines: { color: '#1a2130' } },
