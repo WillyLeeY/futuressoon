@@ -8,8 +8,10 @@ export function dedupe(rows, keyFields) {
 }
 
 function credentials() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SECRET_KEY;
+  // Strip invisible BOM characters and whitespace that can sneak in when secrets are pasted/piped.
+  const clean = (v) => (v ?? '').replace(/^﻿/, '').trim();
+  const url = clean(process.env.SUPABASE_URL);
+  const key = clean(process.env.SUPABASE_SECRET_KEY);
   if (!url || !key) {
     throw new Error('Missing SUPABASE_URL or SUPABASE_SECRET_KEY (set them as environment variables).');
   }
