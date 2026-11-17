@@ -1,0 +1,68 @@
+:root {
+  --bg: #0b0e14;
+  --panel: #121722;
+  --border: #232b3a;
+  --text: #e6e9ef;
+  --muted: #8b95a7;
+  --up: #ef4444;     /* Taiwan convention: red = up */
+  --down: #22c55e;   /* green = down */
+  --accent: #3b82f6;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+}
+
+.wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+.topbar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 16px;
+}
+.brand { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+.brand small { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+
+.group { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.btn {
+  background: var(--panel); color: var(--muted); border: 1px solid var(--border);
+  padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 14px;
+}
+.btn:hover { color: var(--text); }
+.btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px; margin-bottom: 16px;
+}
+.stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.stat .k { color: var(--muted); font-size: 12px; }
+.stat .v { font-size: 18px; font-weight: 600; margin-top: 2px; }
+
+.card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px; margin-bottom: 16px;
+}
+.card h2 { margin: 0 0 8px; font-size: 15px; font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.card h2 span { color: var(--muted); font-size: 12px; font-weight: 400; }
+.chart { width: 100%; }
+
+.up { color: var(--up); }
+.down { color: var(--down); }
+
+.msg { padding: 40px 0; text-align: center; color: var(--muted); }
+.err { color: #f59e0b; }
+
+.footer { color: var(--muted); font-size: 12px; line-height: 1.7; padding: 8px 0 32px; }
+.footer a { color: var(--accent); }
+
+@media (max-width: 600px) {
+  .brand { font-size: 18px; }
+  .wrap { padding: 12px; }
+}
