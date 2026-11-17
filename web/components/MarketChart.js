@@ -53,7 +53,8 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
       crosshair: { mode: CrosshairMode.Normal },
       rightPriceScale: { borderColor: '#232b3a' },
       leftPriceScale: { visible: true, borderColor: '#232b3a' },
-      timeScale: { borderColor: '#232b3a', rightOffset: 3 },
+      // Do not allow scrolling/zooming beyond the first and last day that has data.
+      timeScale: { borderColor: '#232b3a', rightOffset: 0, fixLeftEdge: true, fixRightEdge: true },
       localization: { locale: 'zh-TW' },
     });
 
