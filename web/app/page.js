@@ -21,6 +21,18 @@ const CUMULATIVE_DAYS = [5, 20];
 const cumulative = (rows, n) =>
   rows.length < n ? null : rows.slice(-n).reduce((sum, r) => sum + (r.net_volume ?? 0), 0);
 
+// Direction label + number, e.g. "偏多 +1,234" (red = long, green = short, like the rest of the site).
+function Direction({ value }) {
+  if (value === null || value === undefined) return '-';
+  const text = value > 0 ? '偏多' : value < 0 ? '偏空' : '持平';
+  return (
+    <span className={cls(value)}>
+      <b>{text}</b> {sign(value)}
+      {fmt(value)}
+    </span>
+  );
+}
+
 function Group({ items, value, onChange, keyName = 'code' }) {
   return (
     <div className="group">
@@ -149,6 +161,39 @@ export default function Page() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {last && (
+        <div className="card dir">
+          <h2>
+            法人多空方向總覽
+            <span>當日 = 買賣超（口）｜持倉 = 未平倉淨口數（口）｜偏多 = 正數，偏空 = 負數</span>
+          </h2>
+          <table>
+            <thead>
+              <tr>
+                <th>法人</th>
+                <th>日期</th>
+                <th>當日方向</th>
+                <th>持倉方向</th>
+              </tr>
+            </thead>
+            <tbody>
+              {INVESTORS.map((inv) => {
+                const rows = institutional[inv.name] ?? [];
+                const row = rows[rows.length - 1];
+                return (
+                  <tr key={inv.name}>
+                    <td>{inv.label}</td>
+                    <td className="muted">{row?.trade_date?.slice(5) ?? '-'}</td>
+                    <td>{row ? <Direction value={row.net_volume} /> : '-'}</td>
+                    <td>{row ? <Direction value={row.oi_net_volume} /> : '-'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

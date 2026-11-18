@@ -59,6 +59,11 @@ html, body {
 .card h2 span { color: var(--muted); font-size: 12px; font-weight: 400; }
 .chart { width: 100%; }
 
+/* Direction overview table */
+.dir table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.dir th { color: var(--muted); font-size: 12px; font-weight: 400; text-align: left; padding: 4px 8px 6px; }
+.dir td { padding: 8px; border-top: 1px solid var(--border); white-space: nowrap; }
+.dir .muted { color: var(--muted); }
 .up { color: var(--up); }
 .down { color: var(--down); }
 
