@@ -7,6 +7,9 @@ export const MARKET_CONTRACTS = ['TX', 'MTX', 'TMF'];
 // TX = 臺股期貨 (big), MTX = 小型臺指期貨 (mini), TMF = 微型臺指期貨 (micro)
 export const INSTITUTIONAL_CONTRACTS = ['臺股期貨', '小型臺指期貨', '微型臺指期貨'];
 
+// TWSE OpenAPI: TAIEX daily open/high/low/close (current month only).
+export const TWSE_INDEX_URL = 'https://openapi.twse.com.tw/v1/indicesReport/MI_5MINS_HIST';
+
 export const OPENAPI_BASE = 'https://openapi.taifex.com.tw/v1';
 export const CSV_MARKET_URL = 'https://www.taifex.com.tw/cht/3/futDataDown';
 export const CSV_INSTITUTIONAL_URL = 'https://www.taifex.com.tw/cht/3/futContractsDateDown';

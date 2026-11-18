@@ -40,6 +40,18 @@ create table if not exists institutional_daily (
   primary key (trade_date, contract_name, investor)
 );
 
+-- 2b) Daily index values (spot), e.g. TAIEX (發行量加權股價指數) from TWSE.
+--     index_code is a column so more indexes (US, etc.) can be added later without changing the table.
+create table if not exists index_daily (
+  trade_date  date    not null,
+  index_code  text    not null,                    -- e.g. TAIEX
+  open        numeric,
+  high        numeric,
+  low         numeric,
+  close       numeric,
+  primary key (trade_date, index_code)
+);
+
 create index if not exists futures_daily_contract_date_idx
   on futures_daily (contract, trade_date desc);
 create index if not exists institutional_daily_contract_date_idx
@@ -49,6 +61,7 @@ create index if not exists institutional_daily_contract_date_idx
 --    The daily fetch job writes with the secret key, which bypasses these rules.
 alter table futures_daily       enable row level security;
 alter table institutional_daily enable row level security;
+alter table index_daily         enable row level security;
 
 drop policy if exists "public read futures_daily" on futures_daily;
 create policy "public read futures_daily"
@@ -57,3 +70,7 @@ create policy "public read futures_daily"
 drop policy if exists "public read institutional_daily" on institutional_daily;
 create policy "public read institutional_daily"
   on institutional_daily for select to anon, authenticated using (true);
+
+drop policy if exists "public read index_daily" on index_daily;
+create policy "public read index_daily"
+  on index_daily for select to anon, authenticated using (true);

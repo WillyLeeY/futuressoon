@@ -13,7 +13,8 @@ import {
   monthChunks,
   sleep,
 } from './lib/taifex.js';
-import { upsert, MARKET_KEY, INSTITUTIONAL_KEY } from './lib/supabase.js';
+import { fetchTaiexMonth } from './lib/twse.js';
+import { upsert, MARKET_KEY, INSTITUTIONAL_KEY, INDEX_KEY } from './lib/supabase.js';
 
 const dryRun = process.argv.includes('--dry-run');
 const LOOKBACK_DAYS = 7;
@@ -72,10 +73,24 @@ if (market.length === 0 || institutional.length === 0) {
   throw new Error('Got no rows from TAIFEX; nothing written.');
 }
 
-if (dryRun) {
-  console.log('Dry run: nothing written.');
-} else {
+if (!dryRun) {
   console.log(`Upserted market: ${await upsert('futures_daily', market, MARKET_KEY)}`);
   console.log(`Upserted institutional: ${await upsert('institutional_daily', institutional, INSTITUTIONAL_KEY)}`);
 }
+
+// TAIEX (spot index) from TWSE OpenAPI. Runs separately so a TWSE problem never blocks the futures data
+// above; if it fails we still finish the futures part and then mark the whole run as failed.
+let indexFailed = false;
+try {
+  const index = await fetchTaiexMonth();
+  console.log(`TAIEX rows: ${index.length}, dates: ${range(index)}`);
+  if (index.length === 0) throw new Error('Got no TAIEX rows from TWSE.');
+  if (!dryRun) console.log(`Upserted TAIEX: ${await upsert('index_daily', index, INDEX_KEY)}`);
+} catch (err) {
+  indexFailed = true;
+  console.error(`TAIEX step failed: ${err.message}`);
+}
+
+if (dryRun) console.log('Dry run: nothing written.');
+if (indexFailed) process.exit(1);
 console.log('Done.');

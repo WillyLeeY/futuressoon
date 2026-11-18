@@ -47,3 +47,4 @@ export async function upsert(table, rows, keyFields, batchSize = 500) {
 
 export const MARKET_KEY = ['trade_date', 'contract', 'contract_month', 'session'];
 export const INSTITUTIONAL_KEY = ['trade_date', 'contract_name', 'investor'];
+export const INDEX_KEY = ['trade_date', 'index_code'];
