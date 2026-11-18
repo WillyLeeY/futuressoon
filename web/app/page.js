@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import MarketChart from '../components/MarketChart';
+import MarketChart, { MA_LINES } from '../components/MarketChart';
 import { CONTRACTS, SESSIONS, INVESTORS, loadCandles, loadInstitutional } from '../lib/data';
 
 const RANGES = [
@@ -36,6 +36,7 @@ export default function Page() {
   const [contract, setContract] = useState('TX');
   const [session, setSession] = useState('regular');
   const [months, setMonths] = useState(6);
+  const [maOn, setMaOn] = useState({ 5: true, 20: true, 60: true });
   const [candles, setCandles] = useState([]);
   const [institutional, setInstitutional] = useState({});
   const [loading, setLoading] = useState(true);
@@ -82,6 +83,19 @@ export default function Page() {
           value={months}
           onChange={setMonths}
         />
+        <div className="group">
+          {MA_LINES.map(({ days, color }) => (
+            <button
+              key={days}
+              className={`btn ma ${maOn[days] ? 'on' : ''}`}
+              style={{ '--ma': color }}
+              onClick={() => setMaOn((s) => ({ ...s, [days]: !s[days] }))}
+              title={`${days} 日均線（點一下開／關）`}
+            >
+              {days}日線
+            </button>
+          ))}
+        </div>
       </div>
 
       {last && (
@@ -138,6 +152,7 @@ export default function Page() {
             institutional={institutional}
             contractLabel={meta.label}
             months={months}
+            maOn={maOn}
           />
         </div>
       </div>

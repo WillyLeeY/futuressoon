@@ -21,6 +21,25 @@ const UP = '#ef4444';
 const DOWN = '#22c55e';
 const OI_LINE = '#facc15';
 
+// Moving averages drawn on the K-line (days -> color). Exported so the page can build its toggle buttons.
+export const MA_LINES = [
+  { days: 5, color: '#f3f4f6' },
+  { days: 20, color: '#3b82f6' },
+  { days: 60, color: '#a855f7' },
+];
+
+/** Simple moving average of close over `days` trading days; first days-1 days have no value. */
+function movingAverage(candles, days) {
+  const out = [];
+  let sum = 0;
+  for (let i = 0; i < candles.length; i++) {
+    sum += candles[i].close;
+    if (i >= days) sum -= candles[i - days].close;
+    if (i >= days - 1) out.push({ time: candles[i].trade_date, value: Math.round((sum / days) * 100) / 100 });
+  }
+  return out;
+}
+
 const fmt = (n, d = 0) =>
   n === null || n === undefined ? '-' : Number(n).toLocaleString('en-US', { maximumFractionDigits: d });
 const cls = (n) => (n > 0 ? 'up' : n < 0 ? 'down' : '');
@@ -32,7 +51,7 @@ function timeToStr(t) {
   return '';
 }
 
-export default function MarketChart({ candles, institutional, contractLabel, months }) {
+export default function MarketChart({ candles, institutional, contractLabel, months, maOn = {} }) {
   const boxRef = useRef(null);
   const apiRef = useRef(null);
   const dataRef = useRef({ candleMap: new Map(), instMaps: [], lastDate: null });
@@ -74,6 +93,21 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
       0,
     );
     candle.priceScale().applyOptions({ scaleMargins: { top: 0.1, bottom: 0.25 } });
+
+    const ma = MA_LINES.map(({ color }) =>
+      chart.addSeries(
+        LineSeries,
+        {
+          color,
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+          priceFormat: { type: 'price', precision: 0, minMove: 1 },
+        },
+        0,
+      ),
+    );
 
     const vol = chart.addSeries(
       HistogramSeries,
@@ -151,7 +185,7 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
     }
 
     chart.subscribeCrosshairMove((param) => render(param.time ? timeToStr(param.time) : null));
-    apiRef.current = { chart, candle, vol, inst, render };
+    apiRef.current = { chart, candle, ma, vol, inst, render };
 
     // Re-apply the visible range when the chart gets its real size (it starts hidden/zero-width),
     // but ONLY until the user starts zooming/dragging. Otherwise zooming in changes the price-axis
@@ -190,6 +224,8 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
     api.candle.setData(
       candles.map((r) => ({ time: r.trade_date, open: r.open, high: r.high, low: r.low, close: r.close })),
     );
+    // Averages use ALL loaded history, not just the visible range, so they are filled from the left.
+    MA_LINES.forEach(({ days }, i) => api.ma[i].setData(movingAverage(candles, days)));
     api.vol.setData(
       candles.map((r) => ({
         time: r.trade_date,
@@ -222,6 +258,13 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
     };
     api.render(null);
   }, [candles, institutional, contractLabel]);
+
+  // Show / hide each moving-average line (toggle buttons on the page).
+  useEffect(() => {
+    const api = apiRef.current;
+    if (!api) return;
+    MA_LINES.forEach(({ days }, i) => api.ma[i].applyOptions({ visible: maOn[days] !== false }));
+  }, [maOn]);
 
   // Visible time range (1 / 3 / 6 / 12 months, 0 = all).
   useEffect(() => {

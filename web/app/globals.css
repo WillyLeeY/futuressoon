@@ -34,6 +34,9 @@ html, body {
 }
 .btn:hover { color: var(--text); }
 .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Moving-average toggles: colored border/text matches the line color; dimmed when off. */
+.btn.ma { border-color: var(--ma); color: var(--ma); opacity: 0.45; }
+.btn.ma.on { opacity: 1; background: color-mix(in srgb, var(--ma) 18%, transparent); }
 
 .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 
