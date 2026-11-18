@@ -16,6 +16,11 @@ const fmt = (n, d = 0) =>
 const cls = (n) => (n > 0 ? 'up' : n < 0 ? 'down' : '');
 const sign = (n) => (n > 0 ? '+' : '');
 
+// Sum of net buy/sell contracts over the latest N trading days (null if fewer than N days of data).
+const CUMULATIVE_DAYS = [5, 20];
+const cumulative = (rows, n) =>
+  rows.length < n ? null : rows.slice(-n).reduce((sum, r) => sum + (r.net_volume ?? 0), 0);
+
 function Group({ items, value, onChange, keyName = 'code' }) {
   return (
     <div className="group">
@@ -126,11 +131,21 @@ export default function Page() {
             return (
               <div className="stat" key={inv.name}>
                 <div className="k">
-                  {inv.label}買賣超（口）｜{row?.trade_date?.slice(5) ?? '-'}
+                  {inv.label}買賣超（口）{' '}
+                  <span style={{ whiteSpace: 'nowrap' }}>｜{row?.trade_date?.slice(5) ?? '-'}</span>
                 </div>
                 <div className={`v ${cls(row?.net_volume)}`}>
                   {row ? `${sign(row.net_volume)}${fmt(row.net_volume)}` : '-'}
                 </div>
+                {CUMULATIVE_DAYS.map((n) => {
+                  const total = cumulative(rows, n);
+                  return (
+                    <div className="k cum" key={n}>
+                      近{n}日累計{' '}
+                      <b className={cls(total)}>{total === null ? '-' : `${sign(total)}${fmt(total)}`}</b>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}

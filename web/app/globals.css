@@ -47,6 +47,9 @@ html, body {
 .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
 .stat .k { color: var(--muted); font-size: 12px; }
 .stat .v { font-size: 18px; font-weight: 600; margin-top: 2px; }
+.stat .cum { margin-top: 4px; font-size: 12px; white-space: nowrap; }
+.stat .cum b { font-weight: 600; }
+.stat .cum + .cum { margin-top: 1px; }
 
 .card {
   background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
