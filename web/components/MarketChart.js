@@ -73,7 +73,7 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
       },
       0,
     );
-    candle.priceScale().applyOptions({ scaleMargins: { top: 0.05, bottom: 0.25 } });
+    candle.priceScale().applyOptions({ scaleMargins: { top: 0.1, bottom: 0.25 } });
 
     const vol = chart.addSeries(
       HistogramSeries,
@@ -100,6 +100,9 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
         },
         i + 1,
       );
+      // Leave room at the top of each pane so tall bars/lines never cover the text legend.
+      hist.priceScale().applyOptions({ scaleMargins: { top: 0.22, bottom: 0.08 } });
+      line.priceScale().applyOptions({ scaleMargins: { top: 0.22, bottom: 0.08 } });
       return { hist, line };
     });
 
@@ -242,5 +245,5 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
     applyRangeRef.current();
   }, [months, candles]);
 
-  return <div ref={boxRef} className="chart" style={{ height: 880 }} />;
+  return <div ref={boxRef} className="chart" style={{ height: 1100 }} />;
 }
