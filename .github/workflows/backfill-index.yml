@@ -1,0 +1,33 @@
+name: Backfill TAIEX history
+
+# Run manually from the Actions tab. Fills the TAIEX (spot index) history from TWSE's open-data download.
+# Leave "from" empty to start at 2025-11-17 (the earliest futures day we have).
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: 'Start date YYYY-MM-DD (empty = 2025-11-17)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  backfill-index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Backfill TAIEX from TWSE open data
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          FROM: ${{ inputs.from }}
+        run: |
+          ARGS=""
+          if [ -n "$FROM" ]; then ARGS="--from $FROM"; fi
+          node scripts/backfill-index.js $ARGS
