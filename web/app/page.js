@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import MarketChart, { MA_LINES } from '../components/MarketChart';
-import { CONTRACTS, SESSIONS, INVESTORS, loadCandles, loadInstitutional } from '../lib/data';
+import { useEffect, useMemo, useState } from 'react';
+import MarketChart, { MA_LINES, OVERLAY_COLOR } from '../components/MarketChart';
+import { CONTRACTS, SESSIONS, INVESTORS, loadCandles, loadInstitutional, loadIndex } from '../lib/data';
 
 const RANGES = [
   { months: 1, label: '1個月' },
@@ -54,18 +54,32 @@ export default function Page() {
   const [session, setSession] = useState('regular');
   const [months, setMonths] = useState(6);
   const [maOn, setMaOn] = useState({ 5: true, 20: true, 60: true });
+  const [overlayOn, setOverlayOn] = useState(true);
+  const [indexRows, setIndexRows] = useState([]);
   const [candles, setCandles] = useState([]);
   const [institutional, setInstitutional] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const meta = CONTRACTS.find((c) => c.code === contract);
+  const isIndex = !!meta.isIndex;
+
+  // Spot index (TAIEX), loaded once: drawn on futures charts and used for the basis card.
+  useEffect(() => {
+    loadIndex()
+      .then(setIndexRows)
+      .catch(() => setIndexRows([])); // the page still works without it
+  }, []);
+  const overlay = useMemo(() => indexRows.map((r) => ({ time: r.trade_date, value: r.close })), [indexRows]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    Promise.all([loadCandles(contract, session), loadInstitutional(meta.institutionalName)])
+    Promise.all([
+      isIndex ? loadIndex() : loadCandles(contract, session),
+      isIndex ? Promise.resolve({}) : loadInstitutional(meta.institutionalName),
+    ])
       .then(([c, i]) => {
         if (cancelled) return;
         setCandles(c);
@@ -80,9 +94,22 @@ export default function Page() {
     return () => {
       cancelled = true;
     };
-  }, [contract, session, meta.institutionalName]);
+  }, [contract, session, meta.institutionalName, isIndex]);
 
   const last = candles[candles.length - 1];
+
+  // Basis = futures close - spot (TAIEX) close, on the latest day that has both (day session only).
+  const indexByDate = useMemo(() => new Map(indexRows.map((r) => [r.trade_date, r])), [indexRows]);
+  let basis = null;
+  if (!isIndex && session === 'regular') {
+    for (let i = candles.length - 1; i >= 0; i--) {
+      const spot = indexByDate.get(candles[i].trade_date);
+      if (spot) {
+        basis = { date: candles[i].trade_date, value: Math.round((candles[i].close - spot.close) * 100) / 100 };
+        break;
+      }
+    }
+  }
 
   return (
     <main className="wrap">
@@ -94,7 +121,7 @@ export default function Page() {
       </div>
 
       <div className="controls" style={{ marginBottom: 16 }}>
-        <Group items={SESSIONS} value={session} onChange={setSession} />
+        {!isIndex && <Group items={SESSIONS} value={session} onChange={setSession} />}
         <Group
           items={RANGES.map((r) => ({ code: r.months, label: r.label }))}
           value={months}
@@ -113,12 +140,22 @@ export default function Page() {
             </button>
           ))}
         </div>
+        {!isIndex && (
+          <button
+            className={`btn ma ${overlayOn ? 'on' : ''}`}
+            style={{ '--ma': OVERLAY_COLOR }}
+            onClick={() => setOverlayOn((v) => !v)}
+            title="在 K 線上疊加加權指數收盤線（點一下開／關）"
+          >
+            加權指數線
+          </button>
+        )}
       </div>
 
       {last && (
         <div className="stats">
           <div className="stat">
-            <div className="k">最新交易日（近月 {last.contract_month}）</div>
+            <div className="k">最新交易日{last.contract_month ? `（近月 ${last.contract_month}）` : ''}</div>
             <div className="v">{last.trade_date}</div>
           </div>
           <div className="stat">
@@ -133,11 +170,26 @@ export default function Page() {
               {fmt(last.change_pct, 2)}%)
             </div>
           </div>
-          <div className="stat">
-            <div className="k">成交量（口）</div>
-            <div className="v">{fmt(last.volume)}</div>
-          </div>
-          {INVESTORS.map((inv) => {
+          {!isIndex && (
+            <div className="stat">
+              <div className="k">成交量（口）</div>
+              <div className="v">{fmt(last.volume)}</div>
+            </div>
+          )}
+          {basis && (
+            <div className="stat">
+              <div className="k">
+                基差（期貨 − 現貨）{' '}
+                <span style={{ whiteSpace: 'nowrap' }}>｜{basis.date.slice(5)}</span>
+              </div>
+              <div className={`v ${cls(basis.value)}`}>
+                {sign(basis.value)}
+                {fmt(basis.value, 2)}
+              </div>
+              <div className="k cum">{basis.value > 0 ? '正價差' : basis.value < 0 ? '逆價差' : '平價'}（點）</div>
+            </div>
+          )}
+          {(isIndex ? [] : INVESTORS).map((inv) => {
             const rows = institutional[inv.name] ?? [];
             const row = rows[rows.length - 1];
             return (
@@ -164,7 +216,7 @@ export default function Page() {
         </div>
       )}
 
-      {last && (
+      {last && !isIndex && (
         <div className="card dir">
           <h2>
             法人多空方向總覽
@@ -199,15 +251,21 @@ export default function Page() {
 
       <div className="card">
         <h2>
-          {meta.label}・{SESSIONS.find((s) => s.code === session).label}
+          {isIndex ? meta.label : `${meta.label}・${SESSIONS.find((s) => s.code === session).label}`}
           <span>
-            1 口 = {meta.pointValue} 元／點｜紅漲綠跌｜柱狀 = 當日買賣超（口）｜黃線 = 未平倉淨口數（口，左軸）
+            {isIndex
+              ? '發行量加權股價指數（現貨）｜紅漲綠跌｜資料來源：臺灣證券交易所'
+              : `1 口 = ${meta.pointValue} 元／點｜紅漲綠跌｜柱狀 = 當日買賣超（口）｜黃線 = 未平倉淨口數（口，左軸）｜虛線 = 加權指數`}
           </span>
         </h2>
         {loading && <div className="msg">載入中…</div>}
         {error && <div className="msg err">{error}</div>}
         <div style={{ display: loading || error ? 'none' : 'block' }}>
           <MarketChart
+            key={isIndex ? 'index' : 'futures'}
+            mode={isIndex ? 'index' : 'futures'}
+            overlay={overlay}
+            overlayOn={overlayOn}
             candles={candles}
             institutional={institutional}
             contractLabel={meta.label}
@@ -220,6 +278,9 @@ export default function Page() {
       <div className="footer">
         資料來源：<a href="https://www.taifex.com.tw/" target="_blank" rel="noreferrer">臺灣期貨交易所</a>
         ，依政府資料開放授權條款第 1 版使用。每日收盤後更新。
+        <br />
+        加權指數資料來源：<a href="https://www.twse.com.tw/" target="_blank" rel="noreferrer">臺灣證券交易所</a>
+        （OpenAPI，僅提供當月起累積的資料）。
         <br />
         K 線為「近月」合約（當日掛牌中最接近到期的月份）。本網站僅整理公開資料供參考，不構成任何投資建議，
         也不保證資料即時或正確。

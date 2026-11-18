@@ -58,7 +58,19 @@ async function collect() {
   };
 }
 
-const { market, institutional, source } = await collect();
+const collected = await collect();
+const { market, source } = collected;
+
+// TAIFEX may publish a day's buy/sell figures before its open-interest figures (they show as 0).
+// If every investor row of a day has zero open interest, treat that day as unfinished and skip it;
+// the next run (the 7-day window) will fill it in once the real numbers are out.
+const unfinished = new Set();
+const byDate = Map.groupBy(collected.institutional, (r) => r.trade_date);
+for (const [date, rows] of byDate) {
+  if (rows.every((r) => !r.oi_long_volume && !r.oi_short_volume)) unfinished.add(date);
+}
+if (unfinished.size) console.warn(`Skipping institutional days without open interest yet: ${[...unfinished].sort().join(', ')}`);
+const institutional = collected.institutional.filter((r) => !unfinished.has(r.trade_date));
 const dates = (rows) => [...new Set(rows.map((r) => r.trade_date))].sort();
 const range = (rows) => {
   const d = dates(rows);

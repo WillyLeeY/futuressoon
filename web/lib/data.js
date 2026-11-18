@@ -9,6 +9,8 @@ export const CONTRACTS = [
   { code: 'TX', label: '大台', institutionalName: '臺股期貨', pointValue: 200 },
   { code: 'MTX', label: '小台', institutionalName: '小型臺指期貨', pointValue: 50 },
   { code: 'TMF', label: '微台', institutionalName: '微型臺指期貨', pointValue: 10 },
+  // Spot index (no sessions / institutional data): only a K-line from TWSE.
+  { code: 'TAIEX', label: '加權指數', isIndex: true },
 ];
 
 export const SESSIONS = [
@@ -56,6 +58,30 @@ export async function loadCandles(contract, session) {
     if (!byDate.has(r.trade_date)) byDate.set(r.trade_date, r); // first = nearest month
   }
   return [...byDate.values()];
+}
+
+/** Daily spot index (TAIEX) from TWSE, shaped like futures candles so the same chart can draw it. */
+export async function loadIndex(code = 'TAIEX') {
+  const rows = await fetchAll(
+    'index_daily',
+    `select=trade_date,open,high,low,close&index_code=eq.${code}&order=trade_date.asc`,
+  );
+  return rows.map((r, i) => {
+    const prev = i > 0 ? rows[i - 1].close : null;
+    const change = prev === null ? null : Math.round((r.close - prev) * 100) / 100;
+    return {
+      trade_date: r.trade_date,
+      contract_month: null,
+      open: r.open,
+      high: r.high,
+      low: r.low,
+      close: r.close,
+      change,
+      change_pct: prev ? Math.round(((r.close - prev) / prev) * 10000) / 100 : null,
+      volume: null,
+      open_interest: null,
+    };
+  });
 }
 
 /** Institutional investors for one product, grouped by investor name. */

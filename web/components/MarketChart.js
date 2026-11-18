@@ -51,7 +51,18 @@ function timeToStr(t) {
   return '';
 }
 
-export default function MarketChart({ candles, institutional, contractLabel, months, maOn = {} }) {
+export const OVERLAY_COLOR = "#22d3ee";
+
+export default function MarketChart({
+  candles,
+  institutional,
+  contractLabel,
+  months,
+  maOn = {},
+  mode = "futures", // "futures" (K-line + volume + 3 investor panes) or "index" (K-line only)
+  overlay = [], // spot-index close line drawn on the futures K-line: [{ time, value }]
+  overlayOn = true,
+}) {
   const boxRef = useRef(null);
   const apiRef = useRef(null);
   const dataRef = useRef({ candleMap: new Map(), instMaps: [], lastDate: null });
@@ -59,6 +70,7 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
   labelRef.current = contractLabel;
   const applyRangeRef = useRef(() => {});
   const interactedRef = useRef(false);
+  const isIndex = mode === "index";
 
   // Create the chart once.
   useEffect(() => {
@@ -92,7 +104,7 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
       },
       0,
     );
-    candle.priceScale().applyOptions({ scaleMargins: { top: 0.1, bottom: 0.25 } });
+    candle.priceScale().applyOptions({ scaleMargins: { top: 0.1, bottom: isIndex ? 0.08 : 0.25 } });
 
     const ma = MA_LINES.map(({ color }) =>
       chart.addSeries(
@@ -109,14 +121,30 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
       ),
     );
 
-    const vol = chart.addSeries(
-      HistogramSeries,
-      { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false },
+    const spot = chart.addSeries(
+      LineSeries,
+      {
+        color: OVERLAY_COLOR,
+        lineWidth: 1,
+        lineStyle: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+        priceFormat: { type: 'price', precision: 0, minMove: 1 },
+      },
       0,
     );
-    chart.priceScale('volume', 0).applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
 
-    const inst = INVESTORS.map((_, i) => {
+    const vol = isIndex
+      ? null
+      : chart.addSeries(
+          HistogramSeries,
+          { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false },
+          0,
+        );
+    if (vol) chart.priceScale('volume', 0).applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+    const inst = (isIndex ? [] : INVESTORS).map((_, i) => {
       const hist = chart.addSeries(
         HistogramSeries,
         { priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false },
@@ -161,16 +189,21 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
     }
 
     function render(dateStr) {
-      const { candleMap, instMaps, lastDate } = dataRef.current;
+      const { candleMap, instMaps, lastDate, spotMap = new Map() } = dataRef.current;
       const d = dateStr && candleMap.has(dateStr) ? dateStr : lastDate;
       const c = d ? candleMap.get(d) : null;
       const first = legendFor(0);
       if (first) {
         first.innerHTML = c
-          ? `<b>${labelRef.current}</b> 近月 ${c.contract_month} ｜ ${c.trade_date} ｜ ` +
+          ? `<b>${labelRef.current}</b>${c.contract_month ? ` 近月 ${c.contract_month}` : ''} ｜ ${c.trade_date} ｜ ` +
             `開 ${fmt(c.open)} 高 ${fmt(c.high)} 低 ${fmt(c.low)} 收 <b class="${cls(c.change)}">${fmt(c.close)}</b> ` +
-            `<span class="${cls(c.change)}">${sign(c.change)}${fmt(c.change)} (${sign(c.change_pct)}${fmt(c.change_pct, 2)}%)</span> ｜ ` +
-            `量 ${fmt(c.volume)} ｜ 未平倉 ${fmt(c.open_interest)}`
+            (c.change === null
+              ? ''
+              : `<span class="${cls(c.change)}">${sign(c.change)}${fmt(c.change)} (${sign(c.change_pct)}${fmt(c.change_pct, 2)}%)</span>`) +
+            (c.volume === null ? '' : ` ｜ 量 ${fmt(c.volume)} ｜ 未平倉 ${fmt(c.open_interest)}`) +
+            (spotMap.has(c.trade_date) && c.contract_month
+              ? ` ｜ <span style="color:${OVERLAY_COLOR}">┅ 加權指數 ${fmt(spotMap.get(c.trade_date), 2)}</span>`
+              : '')
           : `<b>${labelRef.current}</b> 沒有資料`;
       }
       INVESTORS.forEach((inv, i) => {
@@ -185,7 +218,7 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
     }
 
     chart.subscribeCrosshairMove((param) => render(param.time ? timeToStr(param.time) : null));
-    apiRef.current = { chart, candle, ma, vol, inst, render };
+    apiRef.current = { chart, candle, ma, spot, vol, inst, render };
 
     // Re-apply the visible range when the chart gets its real size (it starts hidden/zero-width),
     // but ONLY until the user starts zooming/dragging. Otherwise zooming in changes the price-axis
@@ -226,16 +259,20 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
     );
     // Averages use ALL loaded history, not just the visible range, so they are filled from the left.
     MA_LINES.forEach(({ days }, i) => api.ma[i].setData(movingAverage(candles, days)));
-    api.vol.setData(
+    api.vol?.setData(
       candles.map((r) => ({
         time: r.trade_date,
         value: r.volume ?? 0,
         color: r.close >= r.open ? 'rgba(239,68,68,0.45)' : 'rgba(34,197,94,0.45)',
       })),
     );
+    // Spot-index close line (only drawn on futures charts).
+    const spotRows = isIndex ? [] : overlay;
+    api.spot.setData(spotRows.map((r) => ({ time: r.time, value: r.value })));
 
     const instMaps = INVESTORS.map((inv, i) => {
       const rows = institutional[inv.name] ?? [];
+      if (!api.inst[i]) return new Map();
       api.inst[i].hist.setData(
         rows.map((r) => ({
           time: r.trade_date,
@@ -254,10 +291,16 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
     dataRef.current = {
       candleMap: new Map(candles.map((r) => [r.trade_date, r])),
       instMaps,
+      spotMap: new Map(spotRows.map((r) => [r.time, r.value])),
       lastDate: candles.length ? candles[candles.length - 1].trade_date : null,
     };
     api.render(null);
-  }, [candles, institutional, contractLabel]);
+  }, [candles, institutional, contractLabel, overlay]);
+
+  // Show / hide the spot-index overlay line.
+  useEffect(() => {
+    apiRef.current?.spot.applyOptions({ visible: overlayOn });
+  }, [overlayOn]);
 
   // Show / hide each moving-average line (toggle buttons on the page).
   useEffect(() => {
@@ -288,5 +331,5 @@ export default function MarketChart({ candles, institutional, contractLabel, mon
     applyRangeRef.current();
   }, [months, candles]);
 
-  return <div ref={boxRef} className="chart" style={{ height: 1100 }} />;
+  return <div ref={boxRef} className="chart" style={{ height: isIndex ? 620 : 1100 }} />;
 }
