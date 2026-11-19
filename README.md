@@ -19,7 +19,7 @@
 ## 運作方式
 
 ```
-期交所 ──(平日 17:17 和 19:17)──> GitHub Actions ──寫入──> Supabase 資料庫
+期交所 ──(每天 00:17／06:17／12:17／18:17)──> GitHub Actions ──寫入──> Supabase 資料庫
                                                                 │
 瀏覽器 <──────────────── Vercel（網站）<──────── 讀取 ──────────┘
 ```
@@ -27,7 +27,7 @@
 | 環節 | 說明 |
 |---|---|
 | 資料來源 | [臺灣期貨交易所](https://www.taifex.com.tw/)官方資料：每日更新與歷史回補都用官網 CSV 下載（每天往回補抓 7 天），OpenAPI 僅作備援 |
-| 每日抓取 | GitHub Actions，台灣時間週一到週五 17:17 和 19:17 各一次；同一天重複抓只會覆蓋，不會重複存 |
+| 每日抓取 | GitHub Actions，台灣時間每天 00:17、06:17、12:17、18:17 各一次（GitHub 排程可能延遲數小時）；同一天重複抓只會覆蓋，不會重複存 |
 | 資料庫 | Supabase（PostgreSQL）。網站只用唯讀的公開金鑰，無法寫入 |
 | 網站 | Next.js + [lightweight-charts](https://github.com/tradingview/lightweight-charts)，部署在 Vercel |
 

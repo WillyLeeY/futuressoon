@@ -19,7 +19,7 @@
     - 三大法人：`https://www.taifex.com.tw/cht/3/futContractsDateDown`
 - 商品：大台 `TX`、小台 `MTX`、微台 `TMF`；之後會擴充其他指數，資料表要用通用設計（商品代碼為欄位，不寫死）。
 - 資料保留約一年，每日資料。
-- 資料庫：Supabase（PostgreSQL）。前端：Vercel。每日排程：GitHub Actions，台灣時間 17:17 和 19:17 各一次（Actions 用 UTC，要換算）。
+- 資料庫：Supabase（PostgreSQL）。前端：Vercel。每日排程：GitHub Actions，每天 4 次，台灣時間 00:17、06:17、12:17、18:17（Actions 用 UTC，要換算；GitHub 排程常延遲數小時）。
 - 寫入要冪等：同一天重複抓不可重複存（用 upsert）。
 - K 線圖：lightweight-charts。
 
